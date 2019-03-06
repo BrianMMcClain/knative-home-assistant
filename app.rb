@@ -2,9 +2,12 @@ require 'sinatra'
 require "google/cloud/speech"
 require "google/cloud/text_to_speech"
 require "google/cloud/dialogflow"
+require 'json'
+require 'base64'
 
 def textToSpeech(inputString)
-    client = Google::Cloud::TextToSpeech.new
+
+    client = Google::Cloud::TextToSpeech.new credentials: GOOGLEML_CREDS
     synthesis_input = { text: inputString }
     voice = {
         language_code: "en-US",
@@ -18,14 +21,31 @@ def textToSpeech(inputString)
     end  
 end
 
+configure do
+
+    services = JSON.parse(ENV['VCAP_SERVICES'])
+    
+    googleml_key = services.keys.select { |svc| svc =~ /google-ml-apis/i }.first
+    googleml = services[googleml_key].first['credentials']
+    GOOGLEML_CREDS = JSON.parse Base64.decode64(googleml['PrivateKeyData'])
+    GOOGLEML_PROJECT = googleml['ProjectId']
+
+    dialogflow_key = services.keys.select { |svc| svc =~ /google-dialogflow/i }.first
+    dialogflow = services[dialogflow_key].first['credentials']
+    DIALOGFLOW_CREDS = JSON.parse Base64.decode64(dialogflow['PrivateKeyData'])
+    DIALOGFLOW_PROJECT = dialogflow['ProjectId']
+
+end
+
 post '/' do
+
     c = request.body.read
     File.open('output.ogg', 'wb') {|f| f.write(c)}
 
     # `rm output.ogg`
     # `ffmpeg -i ./output.webm -vn -acodec copy ./output.ogg`
 
-    speech_client = Google::Cloud::Speech.new
+    speech_client = Google::Cloud::Speech.new credentials: GOOGLEML_CREDS
     language_code = "en-US"
     sample_rate_hertz = 24000
     encoding = "LINEAR16"
@@ -60,7 +80,7 @@ post '/' do
     session_id = "dialogflow-s2t-demo"
     language_code = "en-US"
 
-    session_client = Google::Cloud::Dialogflow::Sessions.new
+    session_client = Google::Cloud::Dialogflow::Sessions.new credentials: DIALOGFLOW_CREDS
     session = session_client.class.session_path project_id, session_id
     puts "Session path: #{session}"
     

@@ -47,6 +47,7 @@ GEM
       domain_name (~> 0.5)
     http-form_data (1.0.3)
     http_parser.rb (0.6.0)
+    json (2.2.0)
     jwt (2.1.0)
     memoist (0.16.0)
     multi_json (1.13.1)
@@ -58,6 +59,7 @@ GEM
     rack-protection (2.0.5)
       rack
     rly (0.2.3)
+    rubysl-base64 (2.0.0)
     signet (0.11.0)
       addressable (~> 2.3)
       faraday (~> 0.9)
@@ -81,7 +83,9 @@ DEPENDENCIES
   google-cloud-dialogflow
   google-cloud-speech
   google-cloud-text_to_speech
+  json
+  rubysl-base64
   sinatra
 
 BUNDLED WITH
-   1.17.1
+   1.17.2
