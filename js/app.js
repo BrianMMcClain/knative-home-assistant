@@ -1,11 +1,25 @@
 var recordButton = document.getElementById('record');
 var stopButton = document.getElementById('stop');
+var pauseButton = document.getElementById('pause');
+var audio = new Audio();
 
 recordButton.addEventListener("click", startRecording); 
 stopButton.addEventListener("click", stopRecording);
+pauseButton.addEventListener("click", pauseAudio);
+
+function pauseAudio() {
+    pauseButton.disabled = true;
+    audio.pause();
+}
+
+function disablePause() {
+    pauseButton.disabled = true;
+}
 
 function startRecording() {
     
+    pauseAudio();
+
     var constraints = {
         audio: true,
         video: false
@@ -60,7 +74,9 @@ function uploadRecording(blob) {
         //console.log(request);
         var response = JSON.parse(request.response);
         document.getElementById('responseObj').innerHTML = response.text;
-        var audio = new Audio("data:audio/mp3;base64," + response.audio);
+        audio = new Audio("data:audio/mp3;base64," + response.audio);
+        audio.addEventListener("ended", disablePause);
+        pauseButton.disabled = false;
         audio.play();
     }
 
