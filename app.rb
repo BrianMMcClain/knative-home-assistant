@@ -53,12 +53,14 @@ post '/' do
     response = speech_client.recognize(config, audio)
     results = response.results
 
-    text = ""
-    alternatives = results.first.alternatives
-    alternatives.each do |alternative|
-        puts "#{alternative.transcript}"
-        text = alternative.transcript
-    end
+    text = "fallback"
+    if results.length > 0
+        alternatives = results.first.alternatives
+        alternatives.each do |alternative|
+            puts "#{alternative.transcript}"
+            text = alternative.transcript
+        end
+    end 
 
     puts "Getting intent for #{text}"
 
