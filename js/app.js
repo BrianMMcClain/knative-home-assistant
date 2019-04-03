@@ -1,11 +1,24 @@
 var recordButton = document.getElementById('record');
 var stopButton = document.getElementById('stop');
 var pauseButton = document.getElementById('pause');
+var textButton = document.getElementById('textButton');
+var textInput = document.getElementById('queryText');
+
+// Submit query on <ENTER>
+textInput.addEventListener("keyup", function(event) {
+  if (event.keyCode === 13) {
+    event.preventDefault();
+    document.getElementById("textButton").click();
+  }
+});
+
+
 var audio = new Audio();
 
 recordButton.addEventListener("click", startRecording); 
 stopButton.addEventListener("click", stopRecording);
 pauseButton.addEventListener("click", pauseAudio);
+textButton.addEventListener("click", submitText);
 
 function pauseAudio() {
     pauseButton.disabled = true;
@@ -82,4 +95,20 @@ function uploadRecording(blob) {
 
     request.open("POST", "/", false);
     request.send(blob);
+}
+
+function submitText() {
+    var request = new XMLHttpRequest();
+
+    request.onload = function() {
+        var response = JSON.parse(request.response);
+        document.getElementById('responseObj').innerHTML = response.text;
+        audio = new Audio("data:audio/mp3;base64," + response.audio);
+        audio.addEventListener("ended", disablePause);
+        pauseButton.disabled = false;
+        audio.play();
+    }
+
+    request.open("POST", "/text", true);
+    request.send(textInput.value)
 }

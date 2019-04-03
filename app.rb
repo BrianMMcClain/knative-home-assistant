@@ -22,17 +22,19 @@ end
 
 configure do
 
-    services = JSON.parse(ENV['VCAP_SERVICES'])
-    
-    googleml_key = services.keys.select { |svc| svc =~ /google-ml-apis/i }.first
-    googleml = services[googleml_key].first['credentials']
-    GOOGLEML_CREDS = JSON.parse Base64.decode64(googleml['PrivateKeyData'])
-    GOOGLEML_PROJECT = googleml['ProjectId']
+    if ENV.has_key? "VCAP_SERVICES"
+        services = JSON.parse(ENV['VCAP_SERVICES'])
+        
+        googleml_key = services.keys.select { |svc| svc =~ /google-ml-apis/i }.first
+        googleml = services[googleml_key].first['credentials']
+        GOOGLEML_CREDS = JSON.parse Base64.decode64(googleml['PrivateKeyData'])
+        GOOGLEML_PROJECT = googleml['ProjectId']
 
-    dialogflow_key = services.keys.select { |svc| svc =~ /google-dialogflow/i }.first
-    dialogflow = services[dialogflow_key].first['credentials']
-    DIALOGFLOW_CREDS = JSON.parse Base64.decode64(dialogflow['PrivateKeyData'])
-    DIALOGFLOW_PROJECT = dialogflow['ProjectId']
+        dialogflow_key = services.keys.select { |svc| svc =~ /google-dialogflow/i }.first
+        dialogflow = services[dialogflow_key].first['credentials']
+        DIALOGFLOW_CREDS = JSON.parse Base64.decode64(dialogflow['PrivateKeyData'])
+        DIALOGFLOW_PROJECT = dialogflow['ProjectId']
+    end
 
 end
 
@@ -60,17 +62,9 @@ post '/' do
             puts "#{alternative.transcript}"
             text = alternative.transcript
         end
-    end 
+    end
 
-    puts "Getting intent for #{text}"
-
-    session_id = "dialogflow-s2t-demo"
-    session_client = Google::Cloud::Dialogflow::Sessions.new credentials: DIALOGFLOW_CREDS
-    session = session_client.class.session_path DIALOGFLOW_PROJECT, session_id
-    
-    query_input = { text: { text: text, language_code: language_code } }
-    response = session_client.detect_intent session, query_input
-    query_result = response.query_result
+    query_result = submitDialogflow(text, language_code)
 
     puts "Query text:        #{query_result.query_text}"
     puts "Intent detected:   #{query_result.intent.display_name}"
@@ -81,6 +75,37 @@ post '/' do
     returnData = { "audio": audioData, "text": query_result.fulfillment_text }
 
     return JSON.dump(returnData)
+end
+
+post '/text' do
+    text = request.body.read
+    language_code = "en-US"
+
+    query_result = submitDialogflow(text, language_code)
+
+    puts "Query text:        #{query_result.query_text}"
+    puts "Intent detected:   #{query_result.intent.display_name}"
+    puts "Intent confidence: #{query_result.intent_detection_confidence}"
+    puts "Fulfillment text:  #{query_result.fulfillment_text}\n"
+
+    audioData = textToSpeech(query_result.fulfillment_text)
+    returnData = { "audio": audioData, "text": query_result.fulfillment_text }
+
+    return JSON.dump(returnData)
+end
+
+def submitDialogflow(text, language_code)
+    puts "Getting intent for #{text}"
+
+    session_id = "dialogflow-s2t-demo"
+    session_client = Google::Cloud::Dialogflow::Sessions.new credentials: DIALOGFLOW_CREDS
+    session = session_client.class.session_path DIALOGFLOW_PROJECT, session_id
+    
+    query_input = { text: { text: text, language_code: language_code } }
+    response = session_client.detect_intent session, query_input
+    query_result = response.query_result
+
+    return query_result
 end
 
 options '*' do
